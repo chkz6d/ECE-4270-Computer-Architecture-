@@ -20,6 +20,8 @@ int forwarding = 0;
 int forwardB = 0;
 uint32_t prevInstr = 0;
 
+int filter = 0;
+
 /***************************************************************/
 /* Print out a list of commands available                                                                  */
 /***************************************************************/
@@ -341,8 +343,21 @@ void handle_pipeline()
 	WB();
 	MEM();
 	EX();
-	ID();
-	IF();
+	
+	if(filter)
+	{
+		stall = 1; //stall ID stage 1 more time
+		ID();
+		stall = 0;
+		CURRENT_STATE.PC = EX_MEM.ALUOutput; //change PC
+		IF();
+		filter = filter - 1;
+	}
+	else
+	{
+		ID();
+		IF();
+	}
 }
 
 /************************************************************/
@@ -446,6 +461,10 @@ void WB()
 					NEXT_STATE.LO = MEM_WB.ALUOutput;
 					break;
 				}
+				case 0b001001: { //JALR
+					NEXT_STATE.REGS[MEM_WB.RegisterRd] = MEM_WB.LMD;
+					break;
+				}
 				case 0x0C: { //SYSTEMCALL
 					if(NEXT_STATE.REGS[2] == 0xA)
 					{
@@ -511,6 +530,9 @@ void WB()
 				case 0b101011: { //SW
 					break;
 				}
+				case 0b000011: { //JAL
+					NEXT_STATE.REGS[31] = CURRENT_STATE.PC + 4;
+				}
 				default: {
 					printf("this instruction has not been handled\t");
 				}
@@ -548,7 +570,7 @@ void MEM() {
 		MEM_WB.A = EX_MEM.A;
 		MEM_WB.B = EX_MEM.B;
 		MEM_WB.ALUOutput = EX_MEM.ALUOutput;
-		MEM_WB.LMD = 0;
+		MEM_WB.LMD = MEM_WB.LMD; //change variable here (LMD)
 		MEM_WB.HI = EX_MEM.HI;
 		MEM_WB.LO = EX_MEM.LO;
 		MEM_WB.RegisterRt = EX_MEM.RegisterRt;
@@ -556,6 +578,8 @@ void MEM() {
 		MEM_WB.RegisterRs = EX_MEM.RegisterRs;
 		MEM_WB.RegWrite = EX_MEM.RegWrite;
 		MEM_WB.stalled = EX_MEM.stalled;
+		
+		MEM_WB.jump_branch = EX_MEM.jump_branch;
 
 		uint32_t instruction;
 		instruction = MEM_WB.IR;
