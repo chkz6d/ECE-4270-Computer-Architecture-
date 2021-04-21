@@ -19,6 +19,7 @@ int MEM_WB_RegWrite = 1;
 int forwarding = 0;
 int forwardB = 0;
 uint32_t prevInstr = 0;
+int jump = 0;	//jump flag
 
 /***************************************************************/
 /* Print out a list of commands available                                                                  */
@@ -330,7 +331,7 @@ void load_program() {
 
 /************************************************************/
 /* maintain the pipeline                                                                                           */
-/************************************************************/
+/************************************************************/+
 void handle_pipeline()
 {
 	/*INSTRUCTION_COUNT should be incremented when instruction is done*/
@@ -341,8 +342,18 @@ void handle_pipeline()
 	WB();
 	MEM();
 	EX();
-	ID();
-	IF();
+	if(jump == 1){	//executes if jump flag has been triggered
+		stall = 1;	//stalls
+		ID();
+		stall = 0;
+		CURRENT_STATE.PC = EX_MEM.ALUOutput;	//sets current PC to the value provided by branch or jump inst
+		IF();
+		jump = 0;	//resets jump flag
+	}
+	else{	//executes as if no jump/branch
+		ID();
+		IF();
+	}
 }
 
 /************************************************************/
@@ -446,6 +457,10 @@ void WB()
 					NEXT_STATE.LO = MEM_WB.ALUOutput;
 					break;
 				}
+				case 0b001001: { //JALR
+					NEXT_STATE.REGS[MEM_WB.RegisterRd] = MEM_WB.LMD;	//WHAT
+					break; 
+				}
 				case 0x0C: { //SYSTEMCALL
 					if(NEXT_STATE.REGS[2] == 0xA)
 					{
@@ -511,6 +526,9 @@ void WB()
 				case 0b101011: { //SW
 					break;
 				}
+				case 0b000011: { //JAL
+					NEXT_STATE.REGS[31] = CURRENT_STATE.PC + 4;	//WHAT
+				}
 				default: {
 					printf("this instruction has not been handled\t");
 				}
@@ -556,6 +574,7 @@ void MEM() {
 		MEM_WB.RegisterRs = EX_MEM.RegisterRs;
 		MEM_WB.RegWrite = EX_MEM.RegWrite;
 		MEM_WB.stalled = EX_MEM.stalled;
+		MEM_WB.bra = EX_MEM.bra;
 
 		uint32_t instruction;
 		instruction = MEM_WB.IR;
@@ -645,6 +664,7 @@ void EX() {
 		EX_MEM.RegisterRd = 0;
 		EX_MEM.RegisterRs = 0;
 		EX_MEM.RegWrite = 0;
+		EX_MEM.bra = 0;
 		printf("\nEX did not run, it is stalled");
 	}
 	if(ID_EX.stalled == 0)	{
@@ -663,6 +683,7 @@ void EX() {
 			EX_MEM.RegisterRd = ID_EX.RegisterRd;
 			EX_MEM.RegisterRs = ID_EX.RegisterRs;
 			EX_MEM.RegWrite = ID_EX.RegWrite;
+			EX_MEM.bra = ID_EX.bra;
 
 			uint32_t instruction = EX_MEM.IR;
 			EX_MEM_RegisterRd = (instruction & 0x0000F800) >> 11;
@@ -779,6 +800,17 @@ void EX() {
 						EX_MEM.ALUOutput = EX_MEM.A;
 						break;
 					}
+					case 0b001000: { //JR
+						jump = 1;
+						EX_MEM.ALUOutput = ID_EX.A;
+						break;
+					}
+					case 0b001001: { //JALR
+						jump = 1;
+						EX_MEM.ALUOutput = ID_EX.A;
+						EX_MEM.LMD = CURRENT_STATE.PC + 4;
+						break;
+					}
 					case 0x0C: { //SYSTEMCALL
 						break;
 					}
@@ -842,6 +874,12 @@ void EX() {
 						EX_MEM.ALUOutput = EX_MEM.imm + EX_MEM.A;
 						break;
 					}
+/****************************vvvvvv FUCKKKKK TON OF CODE vvvvvv****************/
+					case 0b000100: //BEQ
+						if(EX_MEM.A == EX_MEM.B) { // if two inputs are equal then take the branch
+
+						}
+
 					default: {
 						printf("this instruction has not been handled\t");
 					}
