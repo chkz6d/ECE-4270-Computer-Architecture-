@@ -19,7 +19,6 @@ int MEM_WB_RegWrite = 1;
 int forwarding = 0;
 int forwardB = 0;
 uint32_t prevInstr = 0;
-int jump = 0;	//jump flag
 
 int filter = 0;
 
@@ -344,17 +343,6 @@ void handle_pipeline()
 	WB();
 	MEM();
 	EX();
-<<<<<<< HEAD
-	if(jump == 1){	//executes if jump flag has been triggered
-		stall = 1;	//stalls
-		ID();
-		stall = 0;
-		CURRENT_STATE.PC = EX_MEM.ALUOutput;	//sets current PC to the value provided by branch or jump inst
-		IF();
-		jump = 0;	//resets jump flag
-	}
-	else{	//executes as if no jump/branch
-=======
 	
 	if(filter)
 	{
@@ -367,7 +355,6 @@ void handle_pipeline()
 	}
 	else
 	{
->>>>>>> c0e6cdb8c380199fb9575502d18481ad035411df
 		ID();
 		IF();
 	}
@@ -475,13 +462,8 @@ void WB()
 					break;
 				}
 				case 0b001001: { //JALR
-<<<<<<< HEAD
-					NEXT_STATE.REGS[MEM_WB.RegisterRd] = MEM_WB.LMD;	//WHAT
-					break; 
-=======
 					NEXT_STATE.REGS[MEM_WB.RegisterRd] = MEM_WB.LMD;
 					break;
->>>>>>> c0e6cdb8c380199fb9575502d18481ad035411df
 				}
 				case 0x0C: { //SYSTEMCALL
 					if(NEXT_STATE.REGS[2] == 0xA)
@@ -549,11 +531,7 @@ void WB()
 					break;
 				}
 				case 0b000011: { //JAL
-<<<<<<< HEAD
-					NEXT_STATE.REGS[31] = CURRENT_STATE.PC + 4;	//WHAT
-=======
 					NEXT_STATE.REGS[31] = CURRENT_STATE.PC + 4;
->>>>>>> c0e6cdb8c380199fb9575502d18481ad035411df
 				}
 				default: {
 					printf("this instruction has not been handled\t");
@@ -600,12 +578,8 @@ void MEM() {
 		MEM_WB.RegisterRs = EX_MEM.RegisterRs;
 		MEM_WB.RegWrite = EX_MEM.RegWrite;
 		MEM_WB.stalled = EX_MEM.stalled;
-<<<<<<< HEAD
-		MEM_WB.bra = EX_MEM.bra;
-=======
 		
 		MEM_WB.jump_branch = EX_MEM.jump_branch;
->>>>>>> c0e6cdb8c380199fb9575502d18481ad035411df
 
 		uint32_t instruction;
 		instruction = MEM_WB.IR;
