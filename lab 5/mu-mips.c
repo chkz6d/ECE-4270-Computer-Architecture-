@@ -21,6 +21,8 @@ int forwardB = 0;
 uint32_t prevInstr = 0;
 int jump = 0;	//jump flag
 
+int filter = 0;
+
 /***************************************************************/
 /* Print out a list of commands available                                                                  */
 /***************************************************************/
@@ -342,6 +344,7 @@ void handle_pipeline()
 	WB();
 	MEM();
 	EX();
+<<<<<<< HEAD
 	if(jump == 1){	//executes if jump flag has been triggered
 		stall = 1;	//stalls
 		ID();
@@ -351,6 +354,20 @@ void handle_pipeline()
 		jump = 0;	//resets jump flag
 	}
 	else{	//executes as if no jump/branch
+=======
+	
+	if(filter)
+	{
+		stall = 1; //stall ID stage 1 more time
+		ID();
+		stall = 0;
+		CURRENT_STATE.PC = EX_MEM.ALUOutput; //change PC
+		IF();
+		filter = filter - 1;
+	}
+	else
+	{
+>>>>>>> c0e6cdb8c380199fb9575502d18481ad035411df
 		ID();
 		IF();
 	}
@@ -458,8 +475,13 @@ void WB()
 					break;
 				}
 				case 0b001001: { //JALR
+<<<<<<< HEAD
 					NEXT_STATE.REGS[MEM_WB.RegisterRd] = MEM_WB.LMD;	//WHAT
 					break; 
+=======
+					NEXT_STATE.REGS[MEM_WB.RegisterRd] = MEM_WB.LMD;
+					break;
+>>>>>>> c0e6cdb8c380199fb9575502d18481ad035411df
 				}
 				case 0x0C: { //SYSTEMCALL
 					if(NEXT_STATE.REGS[2] == 0xA)
@@ -527,7 +549,11 @@ void WB()
 					break;
 				}
 				case 0b000011: { //JAL
+<<<<<<< HEAD
 					NEXT_STATE.REGS[31] = CURRENT_STATE.PC + 4;	//WHAT
+=======
+					NEXT_STATE.REGS[31] = CURRENT_STATE.PC + 4;
+>>>>>>> c0e6cdb8c380199fb9575502d18481ad035411df
 				}
 				default: {
 					printf("this instruction has not been handled\t");
@@ -566,7 +592,7 @@ void MEM() {
 		MEM_WB.A = EX_MEM.A;
 		MEM_WB.B = EX_MEM.B;
 		MEM_WB.ALUOutput = EX_MEM.ALUOutput;
-		MEM_WB.LMD = 0;
+		MEM_WB.LMD = MEM_WB.LMD; //change variable here (LMD)
 		MEM_WB.HI = EX_MEM.HI;
 		MEM_WB.LO = EX_MEM.LO;
 		MEM_WB.RegisterRt = EX_MEM.RegisterRt;
@@ -574,7 +600,12 @@ void MEM() {
 		MEM_WB.RegisterRs = EX_MEM.RegisterRs;
 		MEM_WB.RegWrite = EX_MEM.RegWrite;
 		MEM_WB.stalled = EX_MEM.stalled;
+<<<<<<< HEAD
 		MEM_WB.bra = EX_MEM.bra;
+=======
+		
+		MEM_WB.jump_branch = EX_MEM.jump_branch;
+>>>>>>> c0e6cdb8c380199fb9575502d18481ad035411df
 
 		uint32_t instruction;
 		instruction = MEM_WB.IR;
