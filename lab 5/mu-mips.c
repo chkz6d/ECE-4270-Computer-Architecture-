@@ -882,66 +882,33 @@ void EX() {
 /****************************vvvvvv FUCKKKKK TON OF CODE vvvvvv****************/
 					case 0b000100: //BEQ
 						if(EX_MEM.A == EX_MEM.B) { // if two inputs are equal then take the branch
-							if(EX_MEM.imm >> 15) { //shifts bits so will = 1 if negative
-								EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend
+							EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend with 1's
+						}
+						uint32_t offset = EX_MEM.imm << 2;
+						EX_MEM.ALUOutput = EX_MEM.PC + offset - 4;
+						filter = 1;
+					
+					case 0b000111: //BGTZ
+						if ((EX_MEM.A >> 15)==0) { //take branch
+							if(EX_MEM.imm >> 15) { // negative number
+								EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend with 1's
 							}
-							uint32_t offset = EX_MEM.imm << 2; //creates offset by
+							uint32_t offset = EX_MEM.imm << 2;
 							EX_MEM.ALUOutput = EX_MEM.PC + offset - 4;
 							filter = 1;
-							break;
 						}
-						else{
-							break;
-						}
-					case 0b000101: //BNE	same as BEQ but !=
-						if(EX_MEM.A != EX_MEM.B) { // if two inputs are equal then take the branch
-							if(EX_MEM.imm >> 15) { //shifts bits so will = 1 if negative
-								EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend (takes MSBs and ORs them with 1 to add bits)
-							}
-							uint32_t offset = EX_MEM.imm << 2; //creates offset by
-							EX_MEM.ALUOutput = EX_MEM.PC + offset - 4;
-							filter = 1;
-							break;
-						}
-						else{
-							break;
-						}
-					case 0b000110: //BLEZ
-						if( EX_MEM.A >> 15 || EX_MEM.A == 0) { //conditions to take branch
-							if(EX_MEM.imm >> 15) {	//negative check
-								EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; 
-							}
-						}
-						else{
-							break;
-						}
-					case 0b000001: { //REGIMM
-						switch(){
-							case 00001: { //BGEZ
-								if(!(EX_MEM.A >> 15) || EX_MEM.A == 0)	{ //conditions for greater than (not negative) or equal to zero 
-									if(EX_MEM.imm >> 15) {
-										EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend
-									}
-									uint32_t offset = EX_MEM.imm << 2;
-									EX_MEM.ALUOutput = EX_MEM.PC + outset - 4;
-									filter = 1;
-								}
-								break;
-							}
-							case 00000: { //BLTZ
-								if(EX_MEM.A >> 15)	{ //conditions for less than zero (negative)
-									if(EX_MEM.imm >> 15) {
-										EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend
-									}
-									uint32_t offset = EX_MEM.imm << 2;
-									EX_MEM.ALUOutput = EX_MEM.PC + outset - 4;
-									filter = 1;
-								}
-								break;
-							}
-						}
+						//else don't branch
 						break;
-					}
+					case 0b000010: //J
+						filter = 1;
+						EX_MEM.imm = (EX_MEM.imm << 2);
+						EX_MEM.ALUOutput = EX_MEM.imm;
+						break;
+					case 0b000011: //JAL
+						filter = 1;
+						EX_MEM.imm = (EX_MEM.imm << 2);
+						EX_MEM.ALUOutput = EX_MEM.imm;
+						break;
 					default: {
 						printf("this instruction has not been handled\t");
 					}
