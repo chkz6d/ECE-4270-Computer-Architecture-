@@ -879,16 +879,70 @@ void EX() {
 						EX_MEM.ALUOutput = EX_MEM.imm + EX_MEM.A;
 						break;
 					}
-/****************************vvvvvv FUCKKKKK TON OF CODE vvvvvv****************/
+/****************************vvvvvv F TON OF CODE vvvvvv****************/
 					case 0b000100: //BEQ
 						if(EX_MEM.A == EX_MEM.B) { // if two inputs are equal then take the branch
-							EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend with 1's
+							if(EX_MEM.imm >> 15) { //shifts bits so will = 1 if negative
+								EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend
+							}
+							uint32_t offset = EX_MEM.imm << 2; //creates offset by
+							EX_MEM.ALUOutput = EX_MEM.PC + offset - 4;
+							filter = 1;
+							break;
 						}
-						uint32_t offset = EX_MEM.imm << 2;
-						EX_MEM.ALUOutput = EX_MEM.PC + offset - 4;
-						filter = 1;
-					
-					case 0b000111: //BGTZ
+						else{
+							break;
+						}
+					case 0b000101: //BNE	same as BEQ but !=
+						if(EX_MEM.A != EX_MEM.B) { // if two inputs are equal then take the branch
+							if(EX_MEM.imm >> 15) { //shifts bits so will = 1 if negative
+								EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend (takes MSBs and ORs them with 1 to add bits)
+							}
+							uint32_t offset = EX_MEM.imm << 2; //creates offset by
+							EX_MEM.ALUOutput = EX_MEM.PC + offset - 4;
+							filter = 1;
+							break;
+						}
+						else{
+							break;
+						}
+					case 0b000110: //BLEZ
+						if( EX_MEM.A >> 15 || EX_MEM.A == 0) { //conditions to take branch
+							if(EX_MEM.imm >> 15) {	//negative check
+								EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; 
+							}
+						}
+						else{
+							break;
+						}
+					case 0b000001: { //REGIMM
+						switch(){
+							case 00001: { //BGEZ
+								if(!(EX_MEM.A >> 15) || EX_MEM.A == 0)	{ //conditions for greater than (not negative) or equal to zero 
+									if(EX_MEM.imm >> 15) {
+										EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend
+									}
+									uint32_t offset = EX_MEM.imm << 2;
+									EX_MEM.ALUOutput = EX_MEM.PC + outset - 4;
+									filter = 1;
+								}
+								break;
+							}
+							case 00000: { //BLTZ
+								if(EX_MEM.A >> 15)	{ //conditions for less than zero (negative)
+									if(EX_MEM.imm >> 15) {
+										EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend
+									}
+									uint32_t offset = EX_MEM.imm << 2;
+									EX_MEM.ALUOutput = EX_MEM.PC + outset - 4;
+									filter = 1;
+								}
+								break;
+							}
+							break;
+						}
+					}
+					case 0b000111: {//BGTZ
 						if ((EX_MEM.A >> 15)==0) { //take branch
 							if(EX_MEM.imm >> 15) { // negative number
 								EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend with 1's
@@ -899,16 +953,19 @@ void EX() {
 						}
 						//else don't branch
 						break;
-					case 0b000010: //J
+						}
+					case 0b000010: { //J
 						filter = 1;
 						EX_MEM.imm = (EX_MEM.imm << 2);
 						EX_MEM.ALUOutput = EX_MEM.imm;
 						break;
-					case 0b000011: //JAL
+					}
+					case 0b000011: { //JAL
 						filter = 1;
 						EX_MEM.imm = (EX_MEM.imm << 2);
 						EX_MEM.ALUOutput = EX_MEM.imm;
 						break;
+					}
 					default: {
 						printf("this instruction has not been handled\t");
 					}
@@ -941,6 +998,7 @@ void ID() //step 2
 		ID_EX.RegisterRd = 0;
 		ID_EX.RegisterRs = 0;
 		ID_EX.mem_access = 0;
+		ID_EX.jmpBra = 0;
 
 		uint8_t opcode = (IF_ID.IR & 0xFC000000) >> 26;
 		if(opcode == 0) { //if opcode is 0, then this is an R type instruction
@@ -1059,6 +1117,16 @@ void ID() //step 2
 					ID_EX.RegWrite=0;
 					break;
 				}
+				case 0b001000: { //JR
+					ID_EX.A = NEXT_STATE.REGS[rstruct.rs];
+					IF_ID.stalled = 1; //stalls
+					break;
+				}
+				case 0b001001: { //JALR
+					ID_EX.A = NEXT_STATE.REGS[rstruct.rs];
+					ID_EX.RegisterRd = rstruct.rd;
+					IF_ID.stalled = 1; //stalls
+				}
 				case 0x0C: { //SYSTEMCALL
 					break;
 				}
@@ -1078,13 +1146,46 @@ void ID() //step 2
 			ID_EX.RegisterRd = istruct.rt;
 
 			switch(opcode) {
+				case 0b100000: //lb
+				case 0b100001: //lh
 				case 0b100011: //LW
 					ID_EX.mem_access = 1;
+					ID_EX.RegWrite = 1;
+					break;
 				case 0b101000: //SB
 				case 0b101001: //SH
 				case 0b101011: { //SW
+					ID_EX.mem_access = 1;
 					ID_EX.RegWrite = 0;
+					break;
 				}
+				case 0b000100: //BEQ
+					IF_ID.stalled = 1;
+					break;
+				case 0b000101: //BNE
+					IF_ID.stalled = 1;
+					break;
+				case 0b000110: //BLEZ
+					IF_ID.stalled = 1;
+					break;
+				case 0b000001: //REGIMM
+					ID_EX.jmpBra = 1;
+					IF_ID.stalled = 1;
+					break;
+				case 0b000111: //BGTZ
+					ID_EX.RegWrite = 1;
+					IF_ID.stalled = 1;
+					break;
+				case 0b000010: //J
+					ID_EX.jmpBra = 1;
+					ID_EX.imm = istruct.target;
+					IF_ID.stalled = 1;
+					break;
+				case 0b000011: //JAL
+					ID_EX.jmpBra = 1;
+					ID_EX.imm = istruct.target;
+					IF_ID.stalled = 1;
+					break;
 				default: {
 					ID_EX.RegWrite = 1;
 				}
@@ -1153,6 +1254,11 @@ r_type_struct parse_r_type(uint32_t instruction) {
 	return rstruct;
 }
 
+j_type_struct parse_j_type(uint32_t instruction) {
+	j_type_struct jstruct;
+	jstruct.target = (instruction & 0x3FFFFFF);
+	return jstruct;
+}
 /************************************************************/
 /* Check for Hazard                                                                                                   */
 /************************************************************/
@@ -1215,6 +1321,8 @@ void check_data_hazard() {
 				stall = 1;
 			}
 		}
+		if(EX_MEM.jmpBra)
+			stall = 1
 	ENABLE_FORWARDING = reset;
 
 }
