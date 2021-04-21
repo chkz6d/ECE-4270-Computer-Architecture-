@@ -332,7 +332,7 @@ void load_program() {
 
 /************************************************************/
 /* maintain the pipeline                                                                                           */
-/************************************************************/+
+/************************************************************/
 void handle_pipeline()
 {
 	/*INSTRUCTION_COUNT should be incremented when instruction is done*/
@@ -577,9 +577,8 @@ void MEM() {
 		MEM_WB.RegisterRd = EX_MEM.RegisterRd;
 		MEM_WB.RegisterRs = EX_MEM.RegisterRs;
 		MEM_WB.RegWrite = EX_MEM.RegWrite;
+		MEM_WB.jmpBra = MEM_WB.jmpBra;
 		MEM_WB.stalled = EX_MEM.stalled;
-		
-		MEM_WB.jump_branch = EX_MEM.jump_branch;
 
 		uint32_t instruction;
 		instruction = MEM_WB.IR;
@@ -669,7 +668,7 @@ void EX() {
 		EX_MEM.RegisterRd = 0;
 		EX_MEM.RegisterRs = 0;
 		EX_MEM.RegWrite = 0;
-		EX_MEM.bra = 0;
+		EX_MEM.jmpBra = 0;
 		printf("\nEX did not run, it is stalled");
 	}
 	if(ID_EX.stalled == 0)	{
@@ -688,7 +687,7 @@ void EX() {
 			EX_MEM.RegisterRd = ID_EX.RegisterRd;
 			EX_MEM.RegisterRs = ID_EX.RegisterRs;
 			EX_MEM.RegWrite = ID_EX.RegWrite;
-			EX_MEM.bra = ID_EX.bra;
+			EX_MEM.jmpBra = ID_EX.jmpBra;
 
 			uint32_t instruction = EX_MEM.IR;
 			EX_MEM_RegisterRd = (instruction & 0x0000F800) >> 11;
@@ -806,12 +805,12 @@ void EX() {
 						break;
 					}
 					case 0b001000: { //JR
-						jump = 1;
+						filter = 1;
 						EX_MEM.ALUOutput = ID_EX.A;
 						break;
 					}
 					case 0b001001: { //JALR
-						jump = 1;
+						filter = 1;
 						EX_MEM.ALUOutput = ID_EX.A;
 						EX_MEM.LMD = CURRENT_STATE.PC + 4;
 						break;
@@ -916,14 +915,14 @@ void EX() {
 							break;
 						}
 					case 0b000001: { //REGIMM
-						switch(){
+						switch(EX_MEM.RegisterRt){
 							case 00001: { //BGEZ
 								if(!(EX_MEM.A >> 15) || EX_MEM.A == 0)	{ //conditions for greater than (not negative) or equal to zero 
 									if(EX_MEM.imm >> 15) {
 										EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend
 									}
 									uint32_t offset = EX_MEM.imm << 2;
-									EX_MEM.ALUOutput = EX_MEM.PC + outset - 4;
+									EX_MEM.ALUOutput = EX_MEM.PC + offset - 4;
 									filter = 1;
 								}
 								break;
@@ -934,7 +933,7 @@ void EX() {
 										EX_MEM.imm = 0xFFFF0000 | EX_MEM.imm; //sign extend
 									}
 									uint32_t offset = EX_MEM.imm << 2;
-									EX_MEM.ALUOutput = EX_MEM.PC + outset - 4;
+									EX_MEM.ALUOutput = EX_MEM.PC + offset - 4;
 									filter = 1;
 								}
 								break;
@@ -1187,7 +1186,10 @@ void ID() //step 2
 					IF_ID.stalled = 1;
 					break;
 				default: {
-					ID_EX.RegWrite = 1;
+					ID_EX.A = NEXT_STATE.REGS[istruct.rs];
+					ID_EX.RegisterRd = istruct.rs;
+					IF_ID.stalled = 1;
+					break;
 				}
 			}
 		}
@@ -1241,6 +1243,7 @@ i_type_struct parse_i_type(uint32_t instruction) {
 	istruct.rt = (instruction & 0x001F0000) >> 16;
 	istruct.rs = (instruction & 0x03E00000) >> 21;
 	istruct.offset = istruct.immediate;
+	istruct.target = instruction & 0x03FFFFFF;
 	istruct.base = istruct.rs;
 	return istruct;
 }
@@ -1322,7 +1325,7 @@ void check_data_hazard() {
 			}
 		}
 		if(EX_MEM.jmpBra)
-			stall = 1
+			stall = 1;
 	ENABLE_FORWARDING = reset;
 
 }
