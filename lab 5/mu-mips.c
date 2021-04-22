@@ -1125,6 +1125,7 @@ void ID() //step 2
 					ID_EX.A = NEXT_STATE.REGS[rstruct.rs];
 					ID_EX.RegisterRd = rstruct.rd;
 					IF_ID.stalled = 1; //stalls
+					break;
 				}
 				case 0x0C: { //SYSTEMCALL
 					break;
@@ -1430,49 +1431,41 @@ void print_instruction(uint32_t addr){
 			}
 			case 0b011011: { //DIVU
 				r_type_struct rstruct = parse_r_type(instruction);
-
 				printf("DIVU $%d, $%d\n", rstruct.rs, rstruct.rt);
 				break;
 			}
 			case 0b100100: { //AND
 				r_type_struct rstruct = parse_r_type(instruction);
-
 				printf("AND $%d, $%d, $%d\n", rstruct.rd, rstruct.rs, rstruct.rt);
 				break;
 			}
 			case 0b100101: { //OR
 				r_type_struct rstruct = parse_r_type(instruction);
-
 				printf("OR $%d, $%d, $%d\n", rstruct.rd, rstruct.rs, rstruct.rt);
 				break;
 			}
 			case 0b100110: { //XOR
 				r_type_struct rstruct = parse_r_type(instruction);
-
 				printf("XOR $%d, $%d, $%d\n", rstruct.rd, rstruct.rs, rstruct.rt);
 				break;
 			}
 			case 0b100111: { //NOR
 				r_type_struct rstruct = parse_r_type(instruction);
-
 				printf("NOR $%d, $%d, $%d\n", rstruct.rd, rstruct.rs, rstruct.rt);
 				break;
 			}
 			case 0b101010: { //SLT
 				r_type_struct rstruct = parse_r_type(instruction);
-
 				printf("SLT $%d, $%d, $%d\n", rstruct.rd, rstruct.rs, rstruct.rt);
 				break;
 			}
 			case 0b000011: { //SRA
 				r_type_struct rstruct = parse_r_type(instruction);
-
 				printf("SRA $%d, $%d, %x\n", rstruct.rd, rstruct.rt, rstruct.shamt);
 				break;
 			}
 			case 0b010000: { //MFHI
 				r_type_struct rstruct = parse_r_type(instruction);
-
 				printf("MFHI $%d\n", rstruct.rd);
 				break;
 			}
@@ -1504,7 +1497,7 @@ void print_instruction(uint32_t addr){
 				r_type_struct rstruct = parse_r_type(instruction);
 
 				printf("JALR $%d\n", rstruct.rs);
-				printf("JALR $%d, $%d", rstruct.rd, rstruct.rs);
+				//printf("JALR $%d, $%d", rstruct.rd, rstruct.rs);
 				break;
 			}
 			case 0x0C: { //SYSTEMCALL
@@ -1636,7 +1629,16 @@ void print_instruction(uint32_t addr){
 				printf("BGTZ $%d, %x\n", istruct.rs, istruct.immediate);
 				break;
 			}
-
+			case 0b000010: { //J 000010
+				j_type_struct jstruct = parse_j_type(instruction);
+				printf("J %x\n", jstruct.target);
+				break;
+			}
+			case 0b000011: { //JAL 000011
+				j_type_struct jstruct = parse_j_type(instruction);
+				printf("JAL %x\n", jstruct.target);
+				break;
+			}
 
 
 			default: {
