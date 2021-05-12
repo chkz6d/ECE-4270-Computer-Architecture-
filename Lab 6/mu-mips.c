@@ -88,6 +88,12 @@ void run(int num_cycles) {
 	int i; 
 	int load_stall = 0;
 	for (i = 0; i < num_cycles; i++) {
+		
+		if (RUN_FLAG == FALSE)
+		{
+			printf("Simulation Stopped.\n\n");
+			break;
+		}
 		if(CACHE_MISS_FLAG == 1)
 		{
 			if(load_stall < 100) //100 cycles to laod from memory
@@ -102,10 +108,6 @@ void run(int num_cycles) {
 		}
 		else
 		{
-			if (RUN_FLAG == FALSE) {
-				printf("Simulation Stopped.\n\n");
-				break;
-			}
 			cycle();
 		}
 	}
