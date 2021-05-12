@@ -413,6 +413,7 @@ uint32_t cache_reads(uint32_t addr)
 	uint32_t word = L1Cache.blocks[index].words[word_offset];
 	uint32_t tag = (addr & 0XFFFFFF00) >> 8;
 	//byte_offset = addr & 0x3;
+	// if tags don't match or not valid then miss
 	if((L1Cache.blocks[index].valid != 1) || (L1Cache.blocks[index].tag != tag)){			
 		//read a word
 		L1Cache.blocks[index].tag = tag;
@@ -421,7 +422,7 @@ uint32_t cache_reads(uint32_t addr)
 		L1Cache.blocks[index].words[2] = mem_read_32(addr + 0x8);
 		L1Cache.blocks[index].words[3] = mem_read_32(addr + 0xC);
 		word = L1Cache.blocks[index].words[word_offset];
-		//increment cache miss?
+		//increment cache miss? cache miss so 100 cycles
 		CACHE_MISS_FLAG = 1;
 		cache_misses++;
 	} else{
@@ -440,7 +441,8 @@ void cache_writes(uint32_t addr, uint32_t new)
     uint32_t tag = (addr & 0xFFFFFF00) >> 8;
     
     if(L1Cache.blocks[index].tag != tag || L1Cache.blocks[index].valid != 1){
-        L1Cache.blocks[index].tag = tag;
+        //reading from mem if cache miss
+	L1Cache.blocks[index].tag = tag;
         L1Cache.blocks[index].words[0] = mem_read_32((addr & 0xFFFFFFF0));
         L1Cache.blocks[index].words[1] = mem_read_32((addr & 0xFFFFFFF0) + 0x04);
         L1Cache.blocks[index].words[2] = mem_read_32((addr & 0xFFFFFFF0) + 0x08);
@@ -451,9 +453,10 @@ void cache_writes(uint32_t addr, uint32_t new)
     }else{
         cache_hits++;
     }
-
-    L1Cache.blocks[index].words[word_offset] = new;
     
+    //writing data from store instruction to the cache blocks
+    L1Cache.blocks[index].words[word_offset] = new;
+    //write to the memory the cache blocks
     mem_write_32((addr & 0xFFFFFFF0), L1Cache.blocks[index].words[0]);
     mem_write_32(((addr & 0xFFFFFFF0) + 0x04), L1Cache.blocks[index].words[1]);
     mem_write_32(((addr & 0xFFFFFFF0) + 0x08), L1Cache.blocks[index].words[2]);
