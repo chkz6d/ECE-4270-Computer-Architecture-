@@ -6,7 +6,6 @@ int main()
     int array[] = {5,3,6,8,9,1,4,7,2,10};
     int n = 9;
     
-    
     for (int i = 0; i < 9; i++)
     {
         for(int j = 0; j < 9 - i; j++)
